@@ -24,7 +24,7 @@ jupyter_execute/
 # Ignore environment variables and secrets (Strict Security)
 .env
 .env.*
-
+.vscode
 
 # OS Generated Files
 .DS_Store
@@ -36,3 +36,4 @@ jupyter_execute/
 # Python bytecode cache
 *.pyc
 __pycache__/
+
