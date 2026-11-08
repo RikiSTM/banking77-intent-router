@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "accelerate>=1.15.0",
+    "datasets>=5.1.0",
     "fastapi>=0.162.0",
     "pandas>=3.1.0",
     "polars>=2.1.0",
