@@ -7,15 +7,19 @@ from torch.utils.data import DataLoader
 
 # 1. Load raw data and tokenizer
 ROOT = Path(__file__).resolve().parents[2]
-train_df = pd.read_csv(ROOT / "data/raw/train.csv")
+train_df = pd.read_csv(ROOT / "data" / "processed" / "train_clean.csv")
+# Load the held-out test split (never seen during training)
+test_df = pd.read_csv(ROOT / "data" / "processed" / "test_clean.csv")
 tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 
 # 2. Create the PyTorch Dataset bridge
 class BankingDataset(Dataset):
-    def __init__(self, df):
+    def __init__(self, df, label_map=None):
         self.texts = df["text"].tolist()
-        # Map string labels ("card_arrival") to integers (0, 1, 2...)
-        self.label_map = {label: i for i, label in enumerate(df["category"].unique())}
+        # Reuse training mapping to keep label indices consistent
+        self.label_map = label_map or {
+            label: i for i, label in enumerate(df["category"].unique())
+        }
         self.labels = [self.label_map[label] for label in df["category"]]
 
     def __len__(self):
