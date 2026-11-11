@@ -33,7 +33,7 @@ train_dataset = ds.BankingDataset(ds.train_df)
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 
 # 4. Training loop: the 5-step cycle
-for epoch in range(1):
+for epoch in range(4):
     total_loss = 0.0
     for batch in train_loader:
         input_ids = batch["input_ids"].to(device)
