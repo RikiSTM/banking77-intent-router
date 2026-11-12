@@ -102,19 +102,7 @@ Both V1 and V2 failed to resolve the `pending_transfer` confusion (consistently 
    - `card_acceptance` ↔ `card_not_working` (5 errors)
    - *Root Cause:* Humans understand "not accepted" ≈ "not working", but TF-IDF treats them as unrelated tokens.
 
-## 7. Representation Blindness: OOV & Lexical Retrieval
-**OOV (Out-Of-Vocabulary) Audit:**
-`[TO BE MEASURED]%` of tokens in the test set were completely ignored because they did not exist in the training vocabulary. *Insight: Unseen words are dropped silently—the vectorizer doesn't error out, it just goes blind.*
-
-**Lexical Retrieval Demo (Proto-RAG):**
-*Finding similar words ≠ finding similar meaning.*
-
-| Query | Nearest Neighbor (Cosine Sim) | Status |
-| :--- | :--- | :--- |
-| `[Query 1]` | `[Neighbor 1]` | ✅ Good lexical match |
-| `[Query 2]` | `[Neighbor 2]` | ❌ Zero semantic overlap |
-
-## 8. 🏆 Final Verdict: The Business-Safe Champion
+## 7. 🏆 Final Verdict: The Business-Safe Champion
 
 ### Why Logistic Regression Won Over LinearSVC
 While **LinearSVC** mathematically won the 5-Fold CV tournament with a higher global Macro-F1 (`0.8399` vs `0.8386`), it proved to be too "aggressive" for production banking use:
@@ -136,7 +124,7 @@ This experiment conclusively proved that TF-IDF + Linear models hit a hard ceili
 
 *These limitations serve as the exact justification for transitioning to **Layer 2: Contextual Embeddings (Transformers/BERT)**, where word representations are conditioned on surrounding context.*
 
-## 9. Limitations & Next Steps
+## 8. Limitations & Next Steps
 This is a mini-project built for baseline evaluation. No deep hyperparameter grid searches were conducted, and metrics apply strictly to this linear Bag-of-Words setup.
 
 **Completed:**
@@ -144,27 +132,81 @@ This is a mini-project built for baseline evaluation. No deep hyperparameter gri
 - ✅ Model Comparison Tournament (LogReg vs LinearSVC vs MultinomialNB)
 - ✅ Confusion Matrix Diagnostics & Error Taxonomy
 
-**Next Phase (Layer 2):**
-1. **Contextual Embeddings:** Transition to dense representations (Word2Vec → BERT) to resolve the Anchor Word Dominance problem.
-2. **OOV Audit:** Measure exact percentage of test tokens silently dropped by the vectorizer.
-3. **Hyperparameter Grid Search:** Optimize TF-IDF parameters (`max_df`, `min_df`, `C`) as a final Classic ML squeeze.
+---
 
-## 10. Repository Structure
+## Layer 2: Contextual Embeddings (BERT Fine-tuning)
+
+### 1. Why Move from TF-IDF to BERT?
+TF-IDF hit a structural ceiling on Banking77 due to **Anchor Word Dominance** — words like "transfer" or "card" dominated sparse vectors, making it impossible to distinguish intents that differ only by modifiers ("pending" vs "failed" vs "not received").
+
+BERT's contextual embeddings solve this: the word "transfer" gets a different 768-dimensional vector depending on the surrounding context, allowing the linear classification head to draw better decision boundaries.
+
+### 2. Architecture & Training Configuration
+- **Base model:** `distilbert-base-uncased` (~66M parameters)
+- **Head:** Custom linear classifier (77 classes)
+- **Training:** Fine-tune full model (base + head), not just the head
+
+| Hyperparameter | Value | Rationale |
+|---|---|---|
+| Epochs | 4 | Convergence observed (loss: 1.52 → 0.06) |
+| Batch size | 16 | Safe for MPS/M-series Mac memory limits |
+| Learning rate | 2e-5 | Standard for fine-tuning transformers |
+| Optimizer | AdamW | Industry standard for transformers |
+| Max length | 128 tokens | Banking queries are short |
+
+### 3. Loss Progression
+```text
+Epoch 1: 1.5173 (baseline)
+Epoch 2: 0.2977 (sharp drop — model learns task)
+Epoch 3: 0.1187 (refinement)
+Epoch 4: 0.0574 (convergence)
+```
+
+### 4. Results Comparison
+| Model | Accuracy | Macro-F1 | Note |
+|---|---|---|---|
+| TF-IDF + LogReg (v0.4) | 0.8385 | 0.8386 | Sparse representation (Layer 1) |
+| BERT (1 epoch) | 0.8968 | 0.898 | Undertrained, high false positives |
+| **BERT (4 epochs)** | **0.9256** | **0.926** | ✅ Production-ready (Layer 2) |
+
+**Improvement: +8.7 points over TF-IDF baseline.**
+
+### 5. Key Findings from Confusion Matrix Analysis (4 Epochs)
+
+#### Finding 1: The Great Recovery (`order_physical_card`)
+In epoch 1, this intent was a "magnet" with a Precision of **0.528** (32 excess claims). After 4 epochs, Precision jumped to **0.905** (only 2 excess claims). 
+**Insight:** The initial over-prediction was simply undertraining. The model needed more epochs to calibrate its softmax confidence scores properly. No guardrail threshold is strictly needed anymore.
+
+#### Finding 2: The Semantic Wall (`delivery` vs `arrival`)
+The top confusion pair is now `card_delivery_estimate` ➡️ `card_arrival` (**10 errors**). 
+**Insight:** This is a pure semantic ambiguity. "When will my card arrive?" and "Where is my card delivery?" are nearly identical to humans. This is a hard ceiling for BERT without extra context (like checking the user's actual order status in the database).
+
+#### Finding 3: New Over-claimers Emerge
+With the `order_physical_card` magnet fixed, two new intents became over-claimed:
+- `declined_card_payment` (16 excess claims, Precision 0.714)
+- `transfer_into_account` (14 excess claims, Precision 0.722)
+**Business Implication:** These two intents now need monitoring or confidence thresholds in production to prevent false routing of failed transactions.
+
+## Repository Structure
 ```
 banking77/
 ├── src/
-│ ├── eda/
-│ │ ├── jaccard_similarity.py # Pairwise intent vocabulary overlap analysis
-│ │ └── jaccard_queue_full.json # Tiered watchlist of high-risk confusion pairs
-│ └── layer1_tfidf/
-│ ├── init.py
-│ ├── pipeline.py # TF-IDF + Classifier factory (Bigram + Smart Stopwords)
-│ ├── prep.py # Data loading, cleaning & train/test split
-│ ├── train_eval.py # 5-Fold CV Tournament + Final Test Evaluation
-│ └── diagnostics.py # Per-class F1 audit + Confusion Matrix (Top-10 errors)
+│   ├── eda/
+│   │   ├── jaccard_similarity.py    # Pairwise intent vocabulary overlap
+│   │   └── jaccard_queue_full.json  # High-risk confusion pairs watchlist
+│   ├── layer1_tfidf/
+│   │   ├── pipeline.py              # TF-IDF + Classifier factory
+│   │   ├── prep.py                  # Data loading & cleaning
+│   │   ├── train_eval.py            # 5-Fold CV + Final evaluation
+│   │   └── diagnostics.py           # Per-class F1 + Confusion Matrix
+│   └── layer2_bert/
+│       ├── dataset.py               # BankingDataset (fixes label_map consistency)
+│       ├── train.py                 # Fine-tuning loop (4 epochs)
+│       └── evaluate.py              # Classification report + confusion matrix export
 ├── data/
-│ └── banking77/ # Raw dataset (train/test CSVs)
-├── README.md
-└── pyproject.toml # Poetry dependencies
+│   ├── raw/                         # Original Banking77 CSVs
+│   └── processed/                   # Cleaned train/test splits
+├── reports/                         # Evaluation outputs (txt)
+└── README.md
 
 ```
