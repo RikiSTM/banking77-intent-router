@@ -37,3 +37,5 @@ jupyter_execute/
 *.pyc
 __pycache__/
 
+# Report
+*.txt
