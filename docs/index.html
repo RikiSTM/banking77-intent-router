@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banking77 Intent Routing Engine | Riki</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --text: #c9d1d9;
+            --heading: #f0f6fc;
+            --accent: #58a6ff;
+            --border: #30363d;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1, h2, h3 { color: var(--heading); }
+        h1 { font-size: 2.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        h2 { margin-top: 40px; color: var(--accent); }
+        .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--bg);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        code {
+            background: #2d333b;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #ff7b72;
+        }
+        a { color: var(--accent); text-decoration: none; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .highlight { color: #ff7b72; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <span class="badge">NLP / PYTORCH / MLOPS</span>
+    <h1>🏦 Banking77 Intent Routing Engine</h1>
+    <p><em>Bridging the gap between baseline ML and production-grade LLM/RAG systems through rigorous evaluation.</em></p>
+
+    <h2>🎯 The "Why"</h2>
+    <p>Before scaling to expensive LLMs, you must understand the structural ceiling of simpler models. This project builds a two-tier intent router to prove that contextual embeddings combined with business-logic guardrails can outperform naive prompting for specific routing tasks, while keeping inference cheap and explainable.</p>
+
+    <h2>🛠️ The Two-Tier Architecture</h2>
+    <div class="card">
+        <ul>
+            <li><strong>Layer 1 (TF-IDF + LogReg):</strong> Established the lexical floor at <span class="highlight">83.8% Macro-F1</span>. Exposed the "anchor word" limitations where models rely on single keywords instead of context.</li>
+            <li><strong>Layer 2 (DistilBERT + PyTorch):</strong> Fine-tuned contextual embeddings to push accuracy to <span class="highlight">92.6%</span>. Overcame TF-IDF's structural ceiling by understanding word order and semantic nuance.</li>
+            <li><strong>Data Pipeline Rigor:</strong> Enforced strict <code>label_map</code> consistency across train/test splits to prevent silent index-mismatch bugs during offline evaluation.</li>
+        </ul>
+    </div>
+
+    <h2>💡 Key Diagnostic Insights (Beyond Accuracy)</h2>
+    <div class="card">
+        <h3>1. Aggressors vs. Victims (FP vs FN)</h3>
+        <p>A high False Positive (Aggressor) intent steals queries from others. A high False Negative (Victim) intent is being robbed. Fixing the Aggressor's confidence threshold automatically heals the Victim's recall without touching its training data.</p>
+        
+        <h3>2. Symmetric Leakage = Label Ambiguity</h3>
+        <p>When Intent A and Intent B leak into each other equally (e.g., Precision = Recall = 0.825), it's not a weak model. It's an inconsistent answer key. The fix is merging intents or tightening annotation guidelines, not upgrading the architecture.</p>
+        
+        <h3>3. Evaluation is a Steering Wheel</h3>
+        <p>Loss curves only tell you if the model is converging. Confusion matrices and gross error counts (FN + FP) tell you <em>where</em> the business risk lies and whether to apply a threshold, merge labels, or route to a human agent.</p>
+    </div>
+
+    <h2>🔗 Links</h2>
+    <p>
+        <a href="https://github.com/RikiSTM/banking77-intent-routing" target="_blank">➡️ View Source Code on GitHub</a><br>
+        <a href="https://rikistm.github.io/" target="_blank">⬅️ Back to Main Portfolio</a>
+    </p>
+</div>
+
+</body>
+</html>
